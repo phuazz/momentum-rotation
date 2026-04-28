@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Momentum Rotation Dashboard</title>
+<script src="https://cdn.plot.ly/plotly-basic-2.35.2.min.js"></script>
+<style>
+:root{
+  --bg-page:#f7f8fa;
+  --bg-card:#ffffff;
+  --border:#e1e5ea;
+  --border-strong:#cfd4da;
+  --text:#1c2024;
+  --text-secondary:#5e6a76;
+  --text-muted:#8b96a3;
+  --accent:#1f4e96;
+  --accent-soft:#e3eaf5;
+  --accent-border:#c5d6ee;
+  --pos:#2e7d32;
+  --neg:#c62828;
+  --pos-soft:#e8f5e9;
+  --neg-soft:#ffebee;
+  --shadow:0 1px 2px rgba(0,0,0,0.04);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  font-size:14px;line-height:1.55;color:var(--text);background:var(--bg-page);
+  -webkit-font-smoothing:antialiased;
+}
+.page{max-width:1400px;margin:0 auto;padding:20px}
+h1{font-size:17px;font-weight:600;letter-spacing:-0.01em;margin:0}
+h2{font-size:14px;font-weight:600;margin:0;color:var(--text)}
+h3{font-size:13px;font-weight:600;margin:0 0 10px 0}
+p{margin:0}
+.topbar{
+  display:flex;align-items:center;gap:24px;
+  padding:14px 18px;background:var(--bg-card);
+  border:1px solid var(--border);border-radius:8px;
+  margin-bottom:14px;box-shadow:var(--shadow);
+}
+.topbar .meta{display:flex;flex-direction:column;gap:1px;font-size:11px;
+  color:var(--text-muted);margin-left:auto;text-align:right;font-feature-settings:'tnum'}
+.modes{display:flex;gap:2px;border:1px solid var(--border);border-radius:6px;padding:2px;background:var(--bg-page)}
+.mode-btn{background:transparent;border:none;color:var(--text-secondary);
+  font-size:12px;padding:5px 11px;border-radius:4px;cursor:pointer;font-weight:500;
+  font-family:inherit;transition:background .12s}
+.mode-btn.active{background:var(--accent);color:#fff}
+.mode-btn.disabled{color:var(--text-muted);cursor:not-allowed}
+.mode-btn:not(.active):not(.disabled):hover{background:var(--accent-soft)}
+.card{background:var(--bg-card);border:1px solid var(--border);
+  border-radius:8px;padding:16px 18px;margin-bottom:14px;box-shadow:var(--shadow)}
+.card-header{display:flex;justify-content:space-between;align-items:baseline;
+  margin-bottom:12px;gap:12px;flex-wrap:wrap}
+.card-subhead{font-size:11px;color:var(--text-muted);font-feature-settings:'tnum'}
+.hero-grid{display:grid;grid-template-columns:minmax(280px, 1fr) minmax(420px, 2fr);
+  gap:14px;margin-bottom:14px}
+.hero-grid > .card{margin-bottom:0}
+@media (max-width:900px){.hero-grid{grid-template-columns:1fr}}
+.held-list{display:flex;flex-direction:column;gap:8px;margin:8px 0 12px}
+.held-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;
+  gap:12px;padding:11px 14px;background:var(--accent-soft);
+  border:1px solid var(--accent-border);border-radius:6px}
+.held-row .ticker{font-weight:600;font-size:15px;color:var(--accent);letter-spacing:0.02em}
+.held-row .weight{font-weight:600;font-feature-settings:'tnum';font-size:14px;text-align:right}
+.held-row .rank{font-size:11px;color:var(--text-muted);font-feature-settings:'tnum'}
+.held-empty{font-size:13px;color:var(--text-muted);font-style:italic;padding:8px 0}
+.kv-list{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;
+  font-size:12px;color:var(--text-secondary);margin-top:8px}
+.kv-list dt{color:var(--text-muted)}
+.kv-list dd{margin:0;font-feature-settings:'tnum';color:var(--text)}
+.rank-table,#table-performance{width:100%;border-collapse:collapse;font-size:13px}
+.rank-table th,.rank-table td,#table-performance th,#table-performance td{
+  padding:7px 10px;border-bottom:1px solid var(--border);text-align:left}
+.rank-table th,#table-performance th{
+  font-weight:600;color:var(--text-secondary);font-size:11px;
+  text-transform:uppercase;letter-spacing:0.05em}
+.rank-table .num,#table-performance .num,#table-performance th.num{
+  text-align:right;font-feature-settings:'tnum'}
+.rank-table .ticker{font-weight:600;letter-spacing:0.02em}
+.rank-table tr.row-faded{opacity:0.55}
+.rank-table tr.row-held{background:var(--accent-soft)}
+.rank-table tr.row-held .ticker{color:var(--accent)}
+.pos{color:var(--pos)}
+.neg{color:var(--neg)}
+.pill{font-size:10px;padding:2px 8px;border-radius:999px;font-weight:600;
+  text-transform:uppercase;letter-spacing:0.04em}
+.pill-pass{background:var(--pos-soft);color:var(--pos)}
+.pill-fail{background:var(--neg-soft);color:var(--neg)}
+.footnote{font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.5}
+#table-performance th{background:var(--bg-page);text-align:right}
+#table-performance th:first-child{text-align:left}
+#table-performance td.label{font-weight:500}
+#table-performance tbody tr.divider td{padding-top:14px}
+.btn{background:transparent;border:1px solid var(--border);color:var(--text-secondary);
+  font-size:12px;padding:4px 11px;border-radius:4px;cursor:pointer;
+  font-family:inherit;font-weight:500;transition:background .12s}
+.btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn:hover{background:var(--bg-page)}
+.btn.active:hover{background:var(--accent)}
+.chart{width:100%;min-height:280px}
+.footer{background:var(--bg-card);border:1px solid var(--border);
+  border-radius:8px;padding:16px 20px;margin-top:14px;font-size:12px;
+  color:var(--text-secondary);box-shadow:var(--shadow)}
+.footer h3{color:var(--text);margin-bottom:10px}
+.footer ul{padding-left:18px;margin:0}
+.footer li{margin-bottom:4px;line-height:1.55}
+.footer .caveat{margin-top:10px;padding:10px 12px;background:var(--bg-page);
+  border-left:3px solid var(--text-muted);border-radius:4px;font-size:11px}
+.muted{color:var(--text-muted)}
+.error{padding:24px;color:var(--neg);font-weight:500}
+.loading{padding:48px;text-align:center;color:var(--text-muted)}
+</style>
+</head>
+<body>
+<div class="page" id="app">
+  <header class="topbar">
+    <h1>Momentum Rotation Dashboard</h1>
+    <div class="modes" role="tablist" aria-label="Mode selector">
+      <button class="mode-btn active" data-mode="A">A — Vanilla</button>
+      <button class="mode-btn disabled" data-mode="B" title="Coming in Milestone 3">B — Graduated</button>
+      <button class="mode-btn disabled" data-mode="C" title="Coming in Milestone 4">C — Universe</button>
+      <button class="mode-btn disabled" data-mode="D" title="Coming in Milestone 4">D — Combined</button>
+    </div>
+    <div class="meta">
+      <span id="ts-utc">—</span>
+      <span id="ts-sgt">—</span>
+    </div>
+  </header>
+  <section class="hero-grid">
+    <div class="card" id="card-currently-held"><div class="loading">Loading…</div></div>
+    <div class="card" id="card-live-ranking"><div class="loading">Loading…</div></div>
+  </section>
+  <section class="card">
+    <div class="card-header">
+      <h2>Equity curve</h2>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="card-subhead" id="equity-period">—</span>
+        <button class="btn" id="btn-log">Log scale</button>
+      </div>
+    </div>
+    <div class="chart" id="chart-equity"></div>
+  </section>
+  <section class="card">
+    <div class="card-header"><h2>Drawdown — Mode A (no slippage)</h2></div>
+    <div class="chart" id="chart-drawdown" style="min-height:240px"></div>
+  </section>
+  <section class="card">
+    <div class="card-header"><h2>Performance statistics</h2><span class="card-subhead">Sharpe and Sortino versus dynamic ^IRX 13-week T-bill</span></div>
+    <div style="overflow-x:auto"><table id="table-performance"></table></div>
+  </section>
+  <section class="card">
+    <div class="card-header"><h2>Rolling 12-month return</h2><span class="card-subhead">Strategy versus SPY total return — highlights regime transitions</span></div>
+    <div class="chart" id="chart-rolling-12m" style="min-height:260px"></div>
+  </section>
+  <section class="card">
+    <div class="card-header"><h2>Holdings timeline</h2><span class="card-subhead">Stacked monthly weights since 2007 — reveals rotation into bonds in 2008, commodities in 2022, and the 2025 gold tilt</span></div>
+    <div class="chart" id="chart-holdings" style="min-height:300px"></div>
+  </section>
+  <footer class="footer">
+    <h3>Backtest assumptions</h3>
+    <ul>
+      <li><strong>Data source</strong>: Yahoo Finance via <code>yfinance</code>, daily adjusted close (split and dividend adjusted). Prices cached locally.</li>
+      <li><strong>Period</strong>: 2007-03-01 to most recent fully executed signal. Backtest start constrained by DBC inception (2006-02-06) plus 12 months of history. Earlier periods held cash.</li>
+      <li><strong>Signal</strong>: trailing 12-month rate of change on month-end adjusted close, with a 200-day SMA trend filter (also computed on adjusted close).</li>
+      <li><strong>Portfolio construction</strong>: top two ETFs by ROC, equal-weighted at 50% each. If only one survives the filter, hold it at 50% with 50% in cash. If none survive, 100% cash. The cash-fallback rules are an interpretation of unspecified edge cases, not directly from Teo.</li>
+      <li><strong>Rebalance convention</strong>: signal computed at prior month-end close; execution at the close of the first trading day of the next month. The portfolio is rebalanced back to target every month, including months where the held pair is unchanged.</li>
+      <li><strong>Cash proxy</strong>: synthesised from the ^IRX 13-week T-bill yield, daily-compounded. BIL is not used.</li>
+      <li><strong>Slippage variants</strong>: 0, 5, and 10 bps round-trip applied to one-way turnover (cost = one_way_turnover × bps / 1e4). The first allocation is taken at zero slippage cost.</li>
+      <li><strong>Risk-free rate for Sharpe and Sortino</strong>: dynamic ^IRX, daily compounded.</li>
+      <li><strong>Sortino convention</strong>: denominator uses the standard deviation of the subset of negative excess returns. The textbook clipped-zero formulation gives a slightly higher Sortino; the relative ranking versus benchmarks is unchanged.</li>
+      <li><strong>200-day SMA filter</strong>: computed on adjusted close per the user specification. For dividend-paying ETFs (notably TLT), this introduces a small upward bias in the "above SMA" check versus a price-only computation. Material for TLT, sub-30 bps for SPY, zero for GLD.</li>
+      <li><strong>Calendar-year returns</strong>: the most recent year is shown as year-to-date. The first partial year (2007) is excluded.</li>
+      <li><strong>Costs not modelled</strong>: tax, commissions outside slippage, market impact (immaterial for liquid ETFs at retail size).</li>
+    </ul>
+    <div class="caveat">
+      <strong>Open caveat — single-source price data.</strong> Historical adjusted closes are sole-sourced from Yahoo Finance. Stooq's free CSV endpoint now requires an API key, so an automated second-source cross-check is currently not in the pipeline. Inception dates were verified against Wikipedia (GLD, SPY) and the strategy memo (TLT, DBC). A self-consistency check between yfinance's two access paths matched to 0.01 bp on eight randomly selected month-end values across the four ETFs but does not constitute a true second source.
+    </div>
+  </footer>
+</div>
+<script>window.__DATA__ = window.__DATA__ || {};</script>
+<!-- DATA_INJECTION_POINT -->
+<script>
+(function(){
+'use strict';
+
+const COLORS = {
+  strategy:'#1f4e96',
+  spy:'#6e7781',
+  sixty40:'#afb8c1',
+  drawdown:'#c62828',
+  GLD:'#d4a017',
+  SPY:'#1565c0',
+  TLT:'#2e7d32',
+  DBC:'#6d4c41',
+  CASH:'#b0bec5',
+};
+
+const PLOTLY_LAYOUT_BASE = {
+  font:{family:'-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif',size:11.5,color:'#1c2024'},
+  paper_bgcolor:'rgba(0,0,0,0)',
+  plot_bgcolor:'#fff',
+  margin:{t:24,r:18,b:48,l:60},
+  hovermode:'x unified',
+  hoverlabel:{bgcolor:'#fff',bordercolor:'#cfd4da',font:{size:11.5}},
+  showlegend:true,
+  legend:{orientation:'h',y:-0.18,x:0,font:{size:11}},
+  xaxis:{gridcolor:'#eef0f2',linecolor:'#cfd4da',zeroline:false,tickfont:{size:11}},
+  yaxis:{gridcolor:'#eef0f2',linecolor:'#cfd4da',zeroline:false,tickfont:{size:11}},
+};
+const PLOTLY_CONFIG = {
+  responsive:true,
+  displayModeBar:false,
+  displaylogo:false,
+};
+
+const fmt = {
+  pct:(v,d)=>v==null||!isFinite(v)?'—':(v*100).toFixed(d==null?2:d)+'%',
+  pctSigned:(v,d)=>{
+    if(v==null||!isFinite(v))return '—';
+    const s=(v*100).toFixed(d==null?2:d);
+    return v>=0?'+'+s+'%':s+'%';
+  },
+  num:(v,d)=>v==null||!isFinite(v)?'—':v.toFixed(d==null?2:d),
+  money:(v)=>v==null?'—':'$'+v.toFixed(2),
+  date:(s)=>{
+    if(!s)return '—';
+    const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const d=new Date(s+'T00:00:00Z');
+    return d.getUTCDate().toString().padStart(2,'0')+' '+months[d.getUTCMonth()]+' '+d.getUTCFullYear();
+  },
+};
+
+function renderHeader(data){
+  const ts = data.equity_curve && data.equity_curve.as_of_utc;
+  if(!ts)return;
+  const d = new Date(ts);
+  const pad=(n)=>n.toString().padStart(2,'0');
+  const utc = d.getUTCFullYear()+'-'+pad(d.getUTCMonth()+1)+'-'+pad(d.getUTCDate())+' '+pad(d.getUTCHours())+':'+pad(d.getUTCMinutes())+' UTC';
+  const sgtMs = d.getTime()+8*3600*1000;
+  const s = new Date(sgtMs);
+  const sgt = s.getUTCFullYear()+'-'+pad(s.getUTCMonth()+1)+'-'+pad(s.getUTCDate())+' '+pad(s.getUTCHours())+':'+pad(s.getUTCMinutes())+' SGT';
+  document.getElementById('ts-utc').textContent = 'Refreshed '+utc;
+  document.getElementById('ts-sgt').textContent = sgt;
+  const ec = data.equity_curve;
+  if(ec.start_date && ec.end_date){
+    document.getElementById('equity-period').textContent = fmt.date(ec.start_date)+' to '+fmt.date(ec.end_date)+' • '+(getYearsBetween(ec.start_date, ec.end_date)).toFixed(1)+' years';
+  }
+}
+
+function getYearsBetween(s,e){
+  const a=new Date(s+'T00:00:00Z'), b=new Date(e+'T00:00:00Z');
+  return (b-a)/(1000*60*60*24*365.25);
+}
+
+function renderCurrentlyHeld(data){
+  const cp = data.current_positioning;
+  if(!cp || !cp.currently_held){
+    document.getElementById('card-currently-held').innerHTML = '<h2>Currently held</h2><p class="muted">No data.</p>';
+    return;
+  }
+  const held = cp.currently_held;
+  const heldRows = held.holdings.filter(h=>h.weight>0);
+  const ec = data.equity_curve;
+  let html = '<div class="card-header"><h2>Currently held</h2><span class="card-subhead">since '+fmt.date(held.exec_date)+'</span></div>';
+  if(heldRows.length===0){
+    html += '<div class="held-empty">No positions — strategy fully in cash.</div>';
+  }else{
+    html += '<div class="held-list">';
+    for(const h of heldRows){
+      const rankLabel = h.rank>0?'rank #'+h.rank:'';
+      html += '<div class="held-row"><span class="ticker">'+h.ticker+'</span>'+
+              '<span class="rank">'+rankLabel+'</span>'+
+              '<span class="weight">'+(h.weight*100).toFixed(0)+'%</span></div>';
+    }
+    html += '</div>';
+  }
+  html += '<dl class="kv-list">'+
+          '<dt>Signal date</dt><dd>'+fmt.date(held.signal_date)+'</dd>'+
+          '<dt>Exec date</dt><dd>'+fmt.date(held.exec_date)+'</dd>'+
+          '<dt>Period</dt><dd>'+fmt.date(ec.start_date)+' to '+fmt.date(ec.end_date)+'</dd>'+
+          '<dt>Data source</dt><dd>'+ec.data_source+'</dd>'+
+          '</dl>';
+  document.getElementById('card-currently-held').innerHTML = html;
+}
+
+function renderLiveRanking(data){
+  const cp = data.current_positioning;
+  const live = cp && cp.live_snapshot;
+  if(!live || !live.rankings){
+    document.getElementById('card-live-ranking').innerHTML = '<h2>Live ranking</h2><p class="muted">Insufficient data.</p>';
+    return;
+  }
+  const heldTickers = new Set(((cp.currently_held && cp.currently_held.holdings) || []).filter(h=>h.weight>0).map(h=>h.ticker));
+  const sorted = [...live.rankings].sort((a,b)=>{
+    if(a.eligible !== b.eligible) return b.eligible - a.eligible;
+    if(a.eligible) return a.rank - b.rank;
+    return (b.roc_12m||0) - (a.roc_12m||0);
+  });
+  let html = '<div class="card-header"><h2>Live ranking</h2><span class="card-subhead">snapshot as of '+fmt.date(live.as_of_date)+'</span></div>';
+  html += '<table class="rank-table"><thead><tr>'+
+          '<th>Ticker</th><th class="num">Price</th><th class="num">12m ROC</th><th class="num">200d Δ</th><th>Filter</th><th class="num">Rank</th>'+
+          '</tr></thead><tbody>';
+  for(const r of sorted){
+    const filter = r.above_200dma===true ? '<span class="pill pill-pass">above</span>' :
+                   r.above_200dma===false ? '<span class="pill pill-fail">below</span>' :
+                   '<span class="muted">—</span>';
+    const rank = r.eligible ? '#'+r.rank : '<span class="muted">—</span>';
+    const rocClass = (r.roc_12m||0) >= 0 ? 'pos' : 'neg';
+    const distClass = (r.distance_pct||0) >= 0 ? 'pos' : 'neg';
+    const rowCls = (r.eligible ? '' : 'row-faded') + (heldTickers.has(r.ticker) ? ' row-held' : '');
+    html += '<tr class="'+rowCls.trim()+'"><td class="ticker">'+r.ticker+'</td>'+
+            '<td class="num">'+fmt.money(r.price)+'</td>'+
+            '<td class="num '+rocClass+'">'+fmt.pctSigned(r.roc_12m)+'</td>'+
+            '<td class="num '+distClass+'">'+fmt.pctSigned(r.distance_pct)+'</td>'+
+            '<td>'+filter+'</td>'+
+            '<td class="num">'+rank+'</td></tr>';
+  }
+  html += '</tbody></table>';
+  html += '<p class="footnote">Filter: above 200-day SMA. Rank: 1 = top, by trailing 12-month return descending. The strategy holds the top two each month. Highlighted rows are currently held.</p>';
+  document.getElementById('card-live-ranking').innerHTML = html;
+}
+
+function renderEquityCurve(data){
+  const series = data.equity_curve.series;
+  const seriesConfig = [
+    {key:'mode_a_0bps',name:'Mode A — 0 bps',color:COLORS.strategy,width:2.5},
+    {key:'mode_a_5bps',name:'Mode A — 5 bps',color:COLORS.strategy,width:1.0,dash:'dot',opacity:0.55},
+    {key:'mode_a_10bps',name:'Mode A — 10 bps',color:COLORS.strategy,width:1.0,dash:'dash',opacity:0.45},
+    {key:'spy_total_return',name:'SPY total return',color:COLORS.spy,width:1.4},
+    {key:'spy_60_agg_40',name:'60/40 SPY/AGG',color:COLORS.sixty40,width:1.4,dash:'dot'},
+  ];
+  const traces = [];
+  for(const cfg of seriesConfig){
+    const points = series[cfg.key];
+    if(!points)continue;
+    traces.push({
+      type:'scatter',mode:'lines',name:cfg.name,
+      x:points.map(p=>p[0]),y:points.map(p=>p[1]),
+      line:{color:cfg.color,width:cfg.width,dash:cfg.dash||'solid'},
+      opacity:cfg.opacity||1,
+      hovertemplate:'%{y:.3f}x<extra>'+cfg.name+'</extra>',
+    });
+  }
+  const layout = Object.assign({},PLOTLY_LAYOUT_BASE,{
+    height:420,
+    yaxis:Object.assign({},PLOTLY_LAYOUT_BASE.yaxis,{title:'Growth of $1',tickformat:'.2f'}),
+    xaxis:Object.assign({},PLOTLY_LAYOUT_BASE.xaxis,{
+      type:'date',
+      rangeselector:{
+        buttons:[
+          {count:1,label:'1Y',step:'year',stepmode:'backward'},
+          {count:3,label:'3Y',step:'year',stepmode:'backward'},
+          {count:5,label:'5Y',step:'year',stepmode:'backward'},
+          {count:10,label:'10Y',step:'year',stepmode:'backward'},
+          {step:'all',label:'All'},
+        ],
+        font:{size:11},
+        bgcolor:'#f7f8fa',
+        activecolor:'#1f4e96',
+        bordercolor:'#e1e5ea',
+        borderwidth:1,
+        x:0,
+        y:1.05,
+      },
+    }),
+  });
+  Plotly.newPlot('chart-equity',traces,layout,PLOTLY_CONFIG);
+  let isLog = false;
+  document.getElementById('btn-log').onclick = function(){
+    isLog = !isLog;
+    Plotly.relayout('chart-equity',{'yaxis.type':isLog?'log':'linear'});
+    this.classList.toggle('active', isLog);
+  };
+}
+
+function renderDrawdown(data){
+  const eq = data.equity_curve.series.mode_a_0bps;
+  if(!eq)return;
+  const dates = eq.map(p=>p[0]);
+  const vals = eq.map(p=>p[1]);
+  const dd = new Array(vals.length);
+  let runMax = -Infinity;
+  for(let i=0;i<vals.length;i++){
+    if(vals[i]>runMax) runMax = vals[i];
+    dd[i] = (vals[i]/runMax) - 1;
+  }
+  let maxDd = 0, maxIdx = 0;
+  for(let i=0;i<dd.length;i++){
+    if(dd[i] < maxDd){ maxDd = dd[i]; maxIdx = i; }
+  }
+  const trace = {
+    type:'scatter',mode:'lines',name:'Drawdown',
+    x:dates,y:dd.map(v=>v*100),
+    line:{color:COLORS.drawdown,width:1.5},
+    fill:'tozeroy',fillcolor:'rgba(198,40,40,0.13)',
+    hovertemplate:'%{y:.2f}%<extra>Drawdown</extra>',
+  };
+  const layout = Object.assign({},PLOTLY_LAYOUT_BASE,{
+    height:240,showlegend:false,
+    yaxis:Object.assign({},PLOTLY_LAYOUT_BASE.yaxis,{title:'Drawdown (%)',ticksuffix:'%',rangemode:'tozero'}),
+    xaxis:Object.assign({},PLOTLY_LAYOUT_BASE.xaxis,{type:'date'}),
+    annotations:[{
+      x:dates[maxIdx],y:dd[maxIdx]*100,
+      text:'Max drawdown '+(maxDd*100).toFixed(1)+'%',
+      showarrow:true,arrowhead:2,ax:0,ay:30,
+      font:{color:COLORS.drawdown,size:11,weight:600},
+      bgcolor:'#fff',bordercolor:COLORS.drawdown,borderwidth:1,borderpad:3,
+    }],
+  });
+  Plotly.newPlot('chart-drawdown',[trace],layout,PLOTLY_CONFIG);
+}
+
+function renderPerformanceTable(data){
+  const stats = data.performance_stats.modes;
+  const cols = [
+    {key:'mode_a_0bps',label:'Mode A — 0 bps'},
+    {key:'mode_a_5bps',label:'Mode A — 5 bps'},
+    {key:'mode_a_10bps',label:'Mode A — 10 bps'},
+    {key:'spy_total_return',label:'SPY total return'},
+    {key:'spy_60_agg_40',label:'60/40 SPY/AGG'},
+  ];
+  const rows = [
+    {key:'cumulative_return',label:'Cumulative return',f:'pctSigned'},
+    {key:'cagr',label:'CAGR',f:'pctSigned'},
+    {key:'vol',label:'Volatility (annual)',f:'pct'},
+    {key:'sharpe',label:'Sharpe ratio',f:'num'},
+    {key:'sortino',label:'Sortino ratio',f:'num'},
+    {key:'max_drawdown',label:'Maximum drawdown',f:'pctSigned'},
+    {key:'calmar',label:'Calmar',f:'num'},
+    {key:'hit_rate',label:'Hit rate (monthly)',f:'pct'},
+    {key:'best_month',label:'Best month',f:'pctSigned'},
+    {key:'worst_month',label:'Worst month',f:'pctSigned'},
+    {y:'2008',label:'2008 calendar return',divider:true},
+    {y:'2020',label:'2020 calendar return'},
+    {y:'2022',label:'2022 calendar return'},
+    {y:'2026',label:'2026 year-to-date'},
+  ];
+  let html = '<thead><tr><th>Metric</th>';
+  for(const c of cols) html += '<th class="num">'+c.label+'</th>';
+  html += '</tr></thead><tbody>';
+  for(const row of rows){
+    const trCls = row.divider ? 'divider' : '';
+    html += '<tr'+(trCls?' class="'+trCls+'"':'')+'><td class="label">'+row.label+'</td>';
+    for(const c of cols){
+      const s = stats[c.key] || {};
+      let v = null;
+      if(row.y) v = (s.yearly_returns||{})[row.y];
+      else v = s[row.key];
+      let formatted, cls = '';
+      if(v == null || !isFinite(v)) formatted = '—';
+      else if(row.f === 'pct') formatted = fmt.pct(v);
+      else if(row.f === 'num') formatted = fmt.num(v);
+      else if(row.f === 'pctSigned' || row.y){
+        formatted = fmt.pctSigned(v);
+        cls = v >= 0 ? 'pos' : 'neg';
+      }
+      html += '<td class="num '+cls+'">'+formatted+'</td>';
+    }
+    html += '</tr>';
+  }
+  html += '</tbody>';
+  document.getElementById('table-performance').innerHTML = html;
+}
+
+function renderRolling12m(data){
+  const computeRolling = (series)=>{
+    if(!series)return {dates:[],vals:[]};
+    const dates = series.map(p=>p[0]);
+    const vals = series.map(p=>p[1]);
+    const outDates=[], outVals=[];
+    const W = 252;
+    for(let i=W;i<vals.length;i++){
+      outDates.push(dates[i]);
+      outVals.push((vals[i]/vals[i-W] - 1)*100);
+    }
+    return {dates:outDates,vals:outVals};
+  };
+  const strat = computeRolling(data.equity_curve.series.mode_a_0bps);
+  const spy = computeRolling(data.equity_curve.series.spy_total_return);
+  const traces = [
+    {type:'scatter',mode:'lines',name:'Strategy (Mode A)',x:strat.dates,y:strat.vals,
+      line:{color:COLORS.strategy,width:2},
+      hovertemplate:'%{y:.2f}%<extra>Strategy</extra>'},
+    {type:'scatter',mode:'lines',name:'SPY total return',x:spy.dates,y:spy.vals,
+      line:{color:COLORS.spy,width:1.5,dash:'dot'},
+      hovertemplate:'%{y:.2f}%<extra>SPY</extra>'},
+  ];
+  const layout = Object.assign({},PLOTLY_LAYOUT_BASE,{
+    height:260,
+    yaxis:Object.assign({},PLOTLY_LAYOUT_BASE.yaxis,{title:'Trailing 12m return',ticksuffix:'%'}),
+    xaxis:Object.assign({},PLOTLY_LAYOUT_BASE.xaxis,{type:'date'}),
+    shapes:[{type:'line',xref:'paper',x0:0,x1:1,yref:'y',y0:0,y1:0,line:{color:'#cfd4da',width:1,dash:'dash'}}],
+  });
+  Plotly.newPlot('chart-rolling-12m',traces,layout,PLOTLY_CONFIG);
+}
+
+function renderHoldingsTimeline(data){
+  const history = data.holdings_timeline.history;
+  if(!history || history.length===0)return;
+  const tickers = ['GLD','SPY','TLT','DBC','CASH'];
+  const dates = history.map(h=>h.signal_date);
+  const traces = tickers.map(t=>({
+    type:'scatter',mode:'lines',name:t,
+    x:dates,
+    y:history.map(h=>h.weights[t]||0),
+    stackgroup:'one',
+    groupnorm:'fraction',
+    line:{color:COLORS[t],width:0},
+    fillcolor:COLORS[t],
+    hovertemplate:'%{y:.0%}<extra>'+t+'</extra>',
+  }));
+  const layout = Object.assign({},PLOTLY_LAYOUT_BASE,{
+    height:300,
+    yaxis:Object.assign({},PLOTLY_LAYOUT_BASE.yaxis,{title:'Weight',range:[0,1],tickformat:'.0%'}),
+    xaxis:Object.assign({},PLOTLY_LAYOUT_BASE.xaxis,{type:'date'}),
+  });
+  Plotly.newPlot('chart-holdings',traces,layout,PLOTLY_CONFIG);
+}
+
+function render(data){
+  try{
+    renderHeader(data);
+    renderCurrentlyHeld(data);
+    renderLiveRanking(data);
+    renderEquityCurve(data);
+    renderDrawdown(data);
+    renderPerformanceTable(data);
+    renderRolling12m(data);
+    renderHoldingsTimeline(data);
+  }catch(e){
+    console.error('Render error:', e);
+    document.getElementById('app').insertAdjacentHTML('afterbegin',
+      '<div class="error">Render error: '+e.message+'. Check console.</div>');
+  }
+}
+
+function loadData(){
+  if(window.__DATA__ && window.__DATA__.equity_curve){
+    return Promise.resolve(window.__DATA__);
+  }
+  return Promise.all([
+    fetch('data/equity_curve.json').then(r=>r.json()),
+    fetch('data/holdings_timeline.json').then(r=>r.json()),
+    fetch('data/performance_stats.json').then(r=>r.json()),
+    fetch('data/current_positioning.json').then(r=>r.json()),
+  ]).then(function(arr){
+    return {
+      equity_curve:arr[0],
+      holdings_timeline:arr[1],
+      performance_stats:arr[2],
+      current_positioning:arr[3],
+    };
+  });
+}
+
+loadData().then(render).catch(function(err){
+  document.getElementById('app').innerHTML =
+    '<div class="error">Data load failed: '+err.message+'.<br><br>'+
+    'When running standalone, the page expects <code>data/*.json</code> to be available alongside <code>template.html</code>. '+
+    'Run <code>python scripts/backtest.py</code> first, then serve from the project root with <code>npx serve .</code>.</div>';
+});
+})();
+</script>
+</body>
+</html>

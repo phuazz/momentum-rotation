@@ -151,6 +151,56 @@ def construct_mode_a_weights(
     return weights, log
 
 
+def compute_live_snapshot(daily_risk: pd.DataFrame) -> dict:
+    """Live ranking using the latest daily close — what the signal would say if
+    computed right now, mid-month. Uses calendar-12-month ROC (latest close vs
+    closest trading day on or before one calendar year ago) for consistency with
+    the monthly signal logic.
+    """
+    if daily_risk.empty or len(daily_risk) < SMA_DAYS:
+        return {}
+    latest_date = daily_risk.index[-1]
+    latest = daily_risk.iloc[-1]
+
+    target = latest_date - pd.DateOffset(years=1)
+    pos = daily_risk.index.searchsorted(target, side="right") - 1
+    if pos < 0:
+        return {}
+    yr_ago = daily_risk.iloc[pos]
+    roc = (latest / yr_ago - 1).astype(float)
+
+    sma_200 = daily_risk.rolling(SMA_DAYS, min_periods=SMA_DAYS).mean().iloc[-1]
+    distance = (latest / sma_200 - 1).astype(float)
+    above = latest > sma_200
+
+    eligible = [
+        (t, float(roc[t]))
+        for t in daily_risk.columns
+        if pd.notna(roc[t]) and pd.notna(above[t]) and bool(above[t])
+    ]
+    eligible.sort(key=lambda x: x[1], reverse=True)
+    rank_map = {t: i + 1 for i, (t, _) in enumerate(eligible)}
+
+    rankings = []
+    for t in daily_risk.columns:
+        rankings.append(
+            {
+                "ticker": t,
+                "price": (None if pd.isna(latest[t]) else round(float(latest[t]), 4)),
+                "roc_12m": (None if pd.isna(roc[t]) else round(float(roc[t]), 6)),
+                "sma_200": (None if pd.isna(sma_200[t]) else round(float(sma_200[t]), 4)),
+                "distance_pct": (None if pd.isna(distance[t]) else round(float(distance[t]), 6)),
+                "above_200dma": (None if pd.isna(above[t]) else bool(above[t])),
+                "eligible": t in rank_map,
+                "rank": rank_map.get(t, 0),
+            }
+        )
+    return {
+        "as_of_date": latest_date.strftime("%Y-%m-%d"),
+        "rankings": rankings,
+    }
+
+
 def filter_executable_signals(
     weights: pd.DataFrame, daily_index: pd.DatetimeIndex
 ) -> pd.DataFrame:
@@ -359,6 +409,7 @@ def run_mode_a(force_refresh: bool = False) -> dict:
         "roc": roc,
         "above_sma": above_sma,
         "data": data,
+        "daily_risk": daily_risk,
     }
 
 
@@ -424,32 +475,54 @@ def emit_outputs(payload: dict) -> None:
     }
     (DATA_DIR / "performance_stats.json").write_text(json.dumps(stats_payload, indent=2))
 
-    # current_positioning.json
+    # current_positioning.json (schema v2: currently_held + live_snapshot)
+    daily_risk = payload["daily_risk"]
     last_sd = weights.index[-1]
     last_w = weights.loc[last_sd]
     last_rec = log_by_date.get(last_sd)
     eligible_set = {e[0] for e in (last_rec.eligible if last_rec else [])}
-    rank_map = {t: i + 1 for i, (t, _) in enumerate(last_rec.eligible if last_rec else [])}
-    holdings_list = []
+    rank_map_held = {t: i + 1 for i, (t, _) in enumerate(last_rec.eligible if last_rec else [])}
+
+    # Find the actual execution date (first trading day strictly after the signal date)
+    exec_after = daily_risk.index[daily_risk.index > last_sd]
+    exec_date = exec_after[0].strftime("%Y-%m-%d") if len(exec_after) > 0 else None
+
+    held_list = []
     for t in RISK_TICKERS:
         roc_v = last_rec.roc.get(t) if last_rec else None
         above = last_rec.above_sma.get(t) if last_rec else None
-        holdings_list.append(
+        held_list.append(
             {
                 "ticker": t,
                 "weight": float(last_w.get(t, 0.0)),
                 "roc_12m": (None if roc_v is None or not np.isfinite(roc_v) else round(roc_v, 6)),
                 "above_200dma": bool(above) if above is not None else None,
                 "eligible": t in eligible_set,
-                "rank": rank_map.get(t, 0),
+                "rank": rank_map_held.get(t, 0),
             }
         )
+    # Cash row, only if held
+    cash_weight = float(last_w.get("CASH", 0.0))
+    if cash_weight > 0:
+        held_list.append({
+            "ticker": "CASH",
+            "weight": cash_weight,
+            "roc_12m": None,
+            "above_200dma": None,
+            "eligible": False,
+            "rank": 0,
+        })
+
     pos_payload = {
-        "schema_version": 1,
+        "schema_version": 2,
         "as_of_utc": now_utc,
-        "last_signal_date": last_sd.strftime("%Y-%m-%d"),
         "mode": "A",
-        "holdings": holdings_list,
+        "currently_held": {
+            "signal_date": last_sd.strftime("%Y-%m-%d"),
+            "exec_date": exec_date,
+            "holdings": held_list,
+        },
+        "live_snapshot": compute_live_snapshot(daily_risk),
     }
     (DATA_DIR / "current_positioning.json").write_text(json.dumps(pos_payload, indent=2))
     print(f"[emit] wrote 4 JSON files to {DATA_DIR}")
