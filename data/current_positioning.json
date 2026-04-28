@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "as_of_utc": "2026-04-28T14:53:41+00:00",
+  "last_signal_date": "2026-03-31",
+  "mode": "A",
+  "holdings": [
+    {
+      "ticker": "GLD",
+      "weight": 0.5,
+      "roc_12m": 0.493337,
+      "above_200dma": true,
+      "eligible": true,
+      "rank": 1
+    },
+    {
+      "ticker": "SPY",
+      "weight": 0.0,
+      "roc_12m": 0.175915,
+      "above_200dma": false,
+      "eligible": false,
+      "rank": 0
+    },
+    {
+      "ticker": "TLT",
+      "weight": 0.0,
+      "roc_12m": -0.004862,
+      "above_200dma": false,
+      "eligible": false,
+      "rank": 0
+    },
+    {
+      "ticker": "DBC",
+      "weight": 0.5,
+      "roc_12m": 0.329971,
+      "above_200dma": true,
+      "eligible": true,
+      "rank": 2
+    }
+  ]
+}

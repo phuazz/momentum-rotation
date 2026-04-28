@@ -1,0 +1,24 @@
+# Raw price caches — regenerated from Yahoo, never commit
+data/raw/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.venv/
+venv/
+.env
+.env.*
+
+# Node
+node_modules/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Claude Code local agent state
+.claude/
