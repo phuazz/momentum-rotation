@@ -1,0 +1,96 @@
+name: Refresh dashboard
+
+# Per CLAUDE.md cron spec:
+#   - Day 2 of each month at 06:00 UTC: planned monthly refresh
+#   - Days 3-5 at 06:00 UTC: idempotent safety-net runs
+#     (commit only if the resulting JSON differs in something other than
+#      the as_of_utc timestamp — handles month-start US market holidays
+#      where Yahoo data for the new month-end isn't yet available on day 2)
+
+on:
+  schedule:
+    - cron: '0 6 2-5 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-dashboard
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Need full history so the bot can push back to main.
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run backtest
+        run: python scripts/backtest.py
+
+      - name: Build dashboard
+        run: python scripts/pipeline.py
+
+      - name: Run tests
+        run: python -m pytest tests/ -q
+
+      - name: Commit refreshed data + docs
+        id: commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          # Decide whether anything beyond the as_of_utc timestamp changed.
+          # Compare each data/*.json against its HEAD version with as_of_utc
+          # stripped. If any file shows a real diff, or if a file is new, or
+          # if template.html / scripts produced a different docs/index.html
+          # *structure* (we approximate by comparing the data the dashboard
+          # would render, which already comes from data/*.json), we commit.
+          substantive=false
+          for f in data/*.json; do
+            cur=$(jq -S 'del(.as_of_utc)' "$f")
+            if git cat-file -e "HEAD:$f" 2>/dev/null; then
+              prev=$(git show "HEAD:$f" | jq -S 'del(.as_of_utc)')
+            else
+              prev='__NEW_FILE__'
+            fi
+            if [ "$cur" != "$prev" ]; then
+              substantive=true
+              echo "Substantive change in $f"
+            fi
+          done
+
+          # Also commit if template.html itself changed (e.g. someone edited
+          # the dashboard) — pipeline.py would have produced a structurally
+          # different docs/index.html.
+          if ! git diff --quiet -- template.html; then
+            substantive=true
+            echo "template.html changed — treating as substantive."
+          fi
+
+          if [ "$substantive" = "false" ]; then
+            echo "No substantive changes — skipping commit (timestamp-only diff)."
+            echo "committed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git add data/*.json docs/index.html
+          git commit -m "chore: monthly refresh $(date -u +%Y-%m-%d)"
+          git push
+          echo "committed=true" >> "$GITHUB_OUTPUT"
