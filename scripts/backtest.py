@@ -766,10 +766,23 @@ def emit_outputs(payload: dict) -> None:
             eq_payload["series"][k] = [
                 [d.strftime("%Y-%m-%d"), round(float(p), 6)] for d, p in eq.items()
             ]
+    # Emit cash equity curve too so the dashboard can compute period-aware
+    # Sharpe/Sortino against the actual ^IRX risk-free path. Anchored at the
+    # first executable date so it shares a baseline with the strategy series.
     if eq_payload["series"]:
         first_key = next(iter(eq_payload["series"]))
-        eq_payload["start_date"] = eq_payload["series"][first_key][0][0]
+        first_date = eq_payload["series"][first_key][0][0]
+        eq_payload["start_date"] = first_date
         eq_payload["end_date"] = eq_payload["series"][first_key][-1][0]
+        cash_price = payload["prep"]["cash_price"]
+        anchor = pd.Timestamp(first_date)
+        cash_window = cash_price[cash_price.index >= anchor]
+        if len(cash_window) > 0:
+            cash_rebased = cash_window / cash_window.iloc[0]
+            eq_payload["series"]["cash"] = [
+                [d.strftime("%Y-%m-%d"), round(float(p), 6)]
+                for d, p in cash_rebased.items()
+            ]
     (DATA_DIR / "equity_curve.json").write_text(json.dumps(eq_payload))
 
     # === holdings_timeline.json ===
