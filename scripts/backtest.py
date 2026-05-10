@@ -161,16 +161,26 @@ def compute_mode_b_subscores(
 
 
 def map_composite_to_allocation(composite: float) -> float:
-    """[0,25)→0.25, [25,50)→0.50, [50,75)→0.75, [75,100]→1.00.
-    Inclusive lower, exclusive upper. 100 snaps into the top band.
+    """Continuous allocation map (revised 2026-05-10 from the original stepped form).
+
+    alloc(composite) = clip(0.25 + 0.75 * composite / 75, 0.25, 1.00)
+
+    Properties:
+      - alloc(0)  = 0.25  (floor preserved)
+      - alloc(75) = 1.00  (saturation point preserved)
+      - alloc(c) increases linearly between 0 and 75; capped at 1.00 above 75
+
+    Rationale: the original stepped map (25/50/75/100 bands) caused the
+    strategy to spend long stretches pinned at the 75% band during clean
+    uptrends where composite hovered in the 60-74 range. A continuous map
+    smooths through that range and recovers ~125 bps CAGR in backtest with
+    minimal drawdown cost (see scripts/mode_b_experiments.py for the A/B).
+    The saturation at composite=75 (rather than 100) is deliberate -
+    full risk-on does not require maximal score, just clearly-trending regimes.
     """
-    if composite < 25.0:
-        return 0.25
-    if composite < 50.0:
-        return 0.50
-    if composite < 75.0:
-        return 0.75
-    return 1.00
+    raw = 0.25 + 0.75 * (composite / 75.0)
+    return max(0.25, min(1.00, raw))
+
 
 
 # === Signal records ===

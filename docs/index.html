@@ -216,7 +216,7 @@ p{margin:0}
   <section class="card" id="card-composite" style="display:none">
     <div class="card-header">
       <h2>Composite score and allocation</h2>
-      <span class="card-subhead">Equal-weight 1/3 each: breadth, momentum strength, leader trend strength. Bands at 25 / 50 / 75 map to 25 / 50 / 75 / 100 % risk allocation.</span>
+      <span class="card-subhead">Equal-weight 1/3 each: breadth, momentum strength, leader trend strength. Allocation scales linearly from 25% (composite 0) to 100% (composite ≥ 75). The dashed line at 75 marks the saturation point.</span>
     </div>
     <div class="chart" id="chart-composite" style="min-height:300px"></div>
   </section>
@@ -262,7 +262,7 @@ p{margin:0}
       <li><strong>Period</strong>: 2007-03-01 to most recent fully executed signal (Mode A/B baseline). Backtest start constrained by DBC inception (2006-02-06) plus 12 months of history. Earlier periods held cash. Mode C universes with shorter-history ETFs start later — PDBC universe begins 2015-12.</li>
       <li><strong>Signal</strong>: trailing 12-month rate of change on month-end adjusted close, with a 200-day SMA trend filter (also computed on adjusted close).</li>
       <li><strong>Mode A — portfolio construction</strong>: top two ETFs by ROC, equal-weighted at 50% each. If only one survives the filter, hold it at 50% with 50% in cash. If none survive, 100% cash. The cash-fallback rules are an interpretation of unspecified edge cases, not directly from Teo.</li>
-      <li><strong>Mode B — graduated overlay</strong>: same ranking and top-two pick as A, but the risk-asset allocation is sized by a composite score in [0, 100]. Composite is the equal-weight mean of three sub-scores: <em>breadth</em> (count above 200d SMA / 4 × 100); <em>momentum strength</em> (avg ROC of qualifying ETFs, winsorised at [0, 40%], rescaled 0–100); <em>leader trend strength</em> (avg distance of top-two qualifying ETFs above 200d SMA, winsorised at [0, 25%], rescaled 0–100). Allocation map: [0,25)→25%, [25,50)→50%, [50,75)→75%, [75,100]→100%, lower-inclusive. "Qualifying" means above 200d SMA. Zero eligible overrides to 100% cash regardless of composite.</li>
+      <li><strong>Mode B — graduated overlay</strong>: same ranking and top-two pick as A, but the risk-asset allocation is sized by a composite score in [0, 100]. Composite is the equal-weight mean of three sub-scores: <em>breadth</em> (count above 200d SMA / 4 × 100); <em>momentum strength</em> (avg ROC of qualifying ETFs, winsorised at [0, 40%], rescaled 0–100); <em>leader trend strength</em> (avg distance of top-two qualifying ETFs above 200d SMA, winsorised at [0, 25%], rescaled 0–100). Allocation map (revised 2026-05-10): continuous linear, alloc = clip(0.25 + 0.75 × composite/75, 0.25, 1.00). Floor 25%, saturation at composite ≥ 75. The previous stepped form (25/50/75/100 bands) is preserved in git history; A/B test in scripts/mode_b_experiments.py showed the continuous map recovers ∼125 bps CAGR with ∼60 bps additional max drawdown. "Qualifying" means above 200d SMA. Zero eligible overrides to 100% cash regardless of composite.</li>
       <li><strong>Mode C — universe sensitivity</strong>: Mode A strategy run on each of five four-ETF universes (baseline plus four single-substitution variants). Bond, equity, and commodity slots are rotated independently so that any sensitivity is attributable to one substitution at a time. Only 0 bps slippage is reported.</li>
       <li><strong>Rebalance convention</strong>: signal computed at prior month-end close; execution at the close of the first trading day of the next month. Rebalanced monthly, including months where the held pair is unchanged.</li>
       <li><strong>Cash proxy</strong>: synthesised from the ^IRX 13-week T-bill yield, daily-compounded. BIL is not used.</li>
@@ -359,8 +359,8 @@ const MODE_DESCRIPTIONS = {
   },
   B: {
     label: 'Mode B — Graduated allocation',
-    summary: 'Same top-2 picks as A, but total risk-asset exposure scales with conviction. A 0–100 <em>composite score</em> (equal-weight of breadth, momentum strength, leader trend strength) maps to 25 / 50 / 75 / 100 % allocated, rest cash.',
-    extra: 'Designed to lower drawdown and avoid whipsaw in choppy regimes (e.g. 2022) at the cost of some upside in clean uptrends. Look at the composite chart below to see when it de-risked.',
+    summary: 'Same top-2 picks as A, but total risk-asset exposure scales <em>continuously</em> with conviction. A 0–100 <em>composite score</em> (equal-weight of breadth, momentum strength, leader trend strength) maps linearly from 25% allocated at composite 0 up to 100% at composite ≥ 75; rest in cash.',
+    extra: 'Designed to lower drawdown and avoid whipsaw in choppy regimes (e.g. 2022). The continuous map (revised 2026-05-10) gives back some of Mode A\'s upside in clean uptrends — see the composite chart below for when it scaled back.',
   },
   C: {
     label: 'Mode C — Universe sensitivity',
@@ -1060,8 +1060,6 @@ function renderComposite(data){
     yaxis:Object.assign({},PLOTLY_LAYOUT_BASE.yaxis,{title:'Score / Allocation (%)',range:[0,105]}),
     xaxis:Object.assign({},PLOTLY_LAYOUT_BASE.xaxis,{type:'date'}),
     shapes:[
-      {type:'line',xref:'paper',x0:0,x1:1,yref:'y',y0:25,y1:25,line:{color:'#cfd4da',width:1,dash:'dash'}},
-      {type:'line',xref:'paper',x0:0,x1:1,yref:'y',y0:50,y1:50,line:{color:'#cfd4da',width:1,dash:'dash'}},
       {type:'line',xref:'paper',x0:0,x1:1,yref:'y',y0:75,y1:75,line:{color:'#cfd4da',width:1,dash:'dash'}},
     ],
   });

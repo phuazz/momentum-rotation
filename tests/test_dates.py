@@ -120,24 +120,25 @@ def test_filter_drops_in_progress_signals():
 
 # === Mode B allocation logic ===
 
-def test_mode_b_allocation_band_edges():
-    """Allocation map is lower-inclusive, upper-exclusive, with 100 snapping
-    into the top band. Verify the four band boundaries explicitly.
+def test_mode_b_allocation_continuous():
+    """Allocation map (revised 2026-05-10): continuous linear from 25% at
+    composite=0 to 100% at composite>=75. Verify floor, slope, and saturation.
     """
     from backtest import map_composite_to_allocation
 
-    # Below 25 → 25%
-    assert map_composite_to_allocation(0.0) == 0.25
-    assert map_composite_to_allocation(24.999) == 0.25
-    # Exactly 25 → 50% (lower-inclusive of next band)
-    assert map_composite_to_allocation(25.0) == 0.50
-    assert map_composite_to_allocation(49.999) == 0.50
-    # Exactly 50 → 75%
-    assert map_composite_to_allocation(50.0) == 0.75
-    assert map_composite_to_allocation(74.999) == 0.75
-    # Exactly 75 → 100%; 100 also snaps in
-    assert map_composite_to_allocation(75.0) == 1.00
-    assert map_composite_to_allocation(100.0) == 1.00
+    # Floor preserved at composite 0
+    assert map_composite_to_allocation(0.0) == pytest.approx(0.25)
+    # Linear interpolation: alloc = 0.25 + 0.75 * c/75
+    assert map_composite_to_allocation(25.0) == pytest.approx(0.50)
+    assert map_composite_to_allocation(50.0) == pytest.approx(0.75)
+    # Saturation at composite=75
+    assert map_composite_to_allocation(75.0) == pytest.approx(1.00)
+    # Above 75 stays clipped at 100%
+    assert map_composite_to_allocation(80.0) == pytest.approx(1.00)
+    assert map_composite_to_allocation(100.0) == pytest.approx(1.00)
+    # Off-grid intermediate values
+    assert map_composite_to_allocation(15.0) == pytest.approx(0.40)   # 0.25 + 0.75*0.20
+    assert map_composite_to_allocation(60.0) == pytest.approx(0.85)   # 0.25 + 0.75*0.80
 
 
 def test_mode_b_winsorisation_clip():
@@ -265,11 +266,12 @@ def test_mode_b_one_survivor_scaled():
     last_w = weights.iloc[-1]
     last_rec = log[-1]
     # 1 of 4 eligible -> breadth = 25
-    # avg ROC of qualifying = 0.30, clipped to 0.40 → 75/100 momentum
-    # leader trend = (130/110 - 1) ≈ 0.1818, clipped at 25% → 72.7/100
-    # composite ≈ (25 + 75 + 72.7) / 3 ≈ 57.6 → 75% allocation band
-    # one survivor: GLD held at 75%/2 = 37.5%, cash 62.5%
-    assert last_rec.allocation_target == pytest.approx(0.75)
-    assert last_w["GLD"] == pytest.approx(0.375)
-    assert last_w["CASH"] == pytest.approx(0.625)
-    assert last_rec.allocation_realised == pytest.approx(0.375)
+    # avg ROC of qualifying = 0.30, clipped to 0.40 -> 75/100 momentum
+    # leader trend = (130/110 - 1) ~= 0.1818, clipped at 25% -> 72.7/100
+    # composite ~= (25 + 75 + 72.7) / 3 ~= 57.58
+    # Continuous map: alloc = 0.25 + 0.75 * 57.58/75 ~= 0.8258
+    # One survivor: GLD held at alloc/2 ~= 0.4129, cash ~= 0.5871
+    assert last_rec.allocation_target == pytest.approx(0.8258, abs=0.001)
+    assert last_w["GLD"] == pytest.approx(0.4129, abs=0.001)
+    assert last_w["CASH"] == pytest.approx(0.5871, abs=0.001)
+    assert last_rec.allocation_realised == pytest.approx(0.4129, abs=0.001)

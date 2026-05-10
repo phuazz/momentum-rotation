@@ -18,7 +18,9 @@ Equal weight 1/3 each:
 - `momentum_strength = avg ROC of qualifying ETFs, winsorised at [0%, 40%], rescaled linearly to 0–100`
 - `leader_trend_strength = avg distance of top-2 qualifying ETFs above their 200-day SMA, winsorised at [0%, 25%], rescaled linearly to 0–100`
 
-Allocation map: `[0,25)→25%, [25,50)→50%, [50,75)→75%, [75,100]→100%`. Inclusive lower, exclusive upper, 100 snaps into the top band.
+Allocation map (revised 2026-05-10): **continuous linear**, `alloc = clip(0.25 + 0.75 × composite/75, 0.25, 1.00)`. Floor at 25% preserved; full risk-on at composite ≥ 75. Saturation at 75 (rather than 100) is deliberate — full allocation does not require maximal score, just clearly-trending regimes.
+
+Previous form (deprecated 2026-05-10): stepped `[0,25)→25%, [25,50)→50%, [50,75)→75%, [75,100]→100%`. The stepped map left the strategy pinned at the 75% band through long stretches of clean uptrends where composite hovered in the 60–74 range. A/B test in `scripts/mode_b_experiments.py` showed the continuous map recovers ~125 bps CAGR with ~60 bps additional max drawdown over 2007–2026; Sharpe and Sortino both improve. Adopting V1 (continuous), rejecting V2 (asymmetric confirmation rule — marginal CAGR, slightly worse drawdown).
 
 Reasoning for replacing dispersion with leader trend strength: dispersion misfires both ways — high in 2022-Q1-style transitions (low conviction, not high), low in 2017-style uniform uptrends (clear regime, not unclear). Leader trend strength scores the assets the strategy is about to hold, is independent of the other two signals, and naturally de-risks whipsaw.
 
