@@ -177,7 +177,6 @@ p{margin:0}
       <button class="mode-btn active" data-mode="A">A — Vanilla</button>
       <button class="mode-btn" data-mode="B">B — Graduated</button>
       <button class="mode-btn" data-mode="C">C — Universe</button>
-      <button class="mode-btn disabled" data-mode="D" title="Coming next">D — Combined</button>
     </div>
     <div class="meta">
       <span id="ts-utc">—</span>
@@ -366,11 +365,6 @@ const MODE_DESCRIPTIONS = {
     label: 'Mode C — Universe sensitivity',
     summary: 'Mode A run on five different <em>four-ETF universes</em> — baseline (GLD / SPY / TLT / DBC) plus four single-substitution variants (IEF, AGG, PDBC, QQQ). Tests how brittle the result is to instrument choice.',
     extra: 'A robust strategy should have similar shape across reasonable substitutions. Click any row in the comparison table to drill into that universe.',
-  },
-  D: {
-    label: 'Mode D — Combined view (planned)',
-    summary: 'Mode B\'s graduated overlay applied to each of the Mode C universes — answers "does conviction-sizing still help when the instrument set changes?".',
-    extra: 'Not yet live.',
   },
 };
 
