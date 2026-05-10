@@ -245,7 +245,7 @@ p{margin:0}
     <div class="year-bars" id="chart-year-bars"></div>
     <h3 style="margin-top:18px">Monthly returns — last 36 months</h3>
     <div style="overflow-x:auto"><table class="monthly-heat" id="table-monthly-heat"></table></div>
-    <p class="footnote">Cells coloured by sign and magnitude. The "Δ vs SPY" rows show where the strategy added or gave up return relative to buy-and-hold equity that month — not a complete attribution, but a quick lens on regime fit.</p>
+    <p class="footnote">Cells coloured by sign and magnitude. The "Δ vs EW" row shows where the strategy added or gave up return relative to a naive monthly-rebalanced 1/N portfolio of the same universe — the most direct test of whether the momentum signal is earning its keep. SPY rows are kept for context.</p>
   </section>
   <section class="card">
     <div class="card-header"><h2 id="rolling-title">Rolling 12-month return</h2><span class="card-subhead">Strategy versus SPY total return — highlights regime transitions</span></div>
@@ -271,6 +271,7 @@ p{margin:0}
       <li><strong>Sortino convention</strong>: denominator uses the standard deviation of the subset of negative excess returns. The textbook clipped-zero formulation gives a slightly higher Sortino; the relative ranking versus benchmarks is unchanged.</li>
       <li><strong>200-day SMA filter</strong>: computed on adjusted close per the user specification. For dividend-paying ETFs (notably TLT), this introduces a small upward bias in the "above SMA" check versus a price-only computation. Material for TLT, sub-30 bps for SPY, zero for GLD.</li>
       <li><strong>Calendar-year returns</strong>: the most recent year is shown as year-to-date. The first partial year (2007) is excluded.</li>
+      <li><strong>Equal-weight (1/N) benchmark</strong>: monthly-rebalanced 25 / 25 / 25 / 25 across the active universe — for Mode A/B that's GLD / SPY / TLT / DBC; for Mode C it's the four ETFs of the selected universe. Anchored at the strategy's first execution date so it shares a baseline. Tests whether the momentum signal adds value over naive 1/N (DeMiguel-Garlappi-Uppal 2009 demonstrated 1/N is a hard hurdle for many strategies).</li>
       <li><strong>Costs not modelled</strong>: tax, commissions outside slippage, market impact (immaterial for liquid ETFs at retail size).</li>
     </ul>
     <div class="caveat">
@@ -286,6 +287,7 @@ p{margin:0}
 
 const COLORS = {
   strategy:'#1f4e96',
+  ew:'#0e7490',
   spy:'#6e7781',
   sixty40:'#afb8c1',
   drawdown:'#c62828',
@@ -556,6 +558,7 @@ function getRenderContext(data, mode){
     series[modeKey('A','0bps')] = u.equity;
     series.spy_total_return = data.equity_curve.series.spy_total_return;
     series.spy_60_agg_40 = data.equity_curve.series.spy_60_agg_40;
+    if(u.ew_equity) series.ew_baseline = u.ew_equity;
     return {
       label: 'Mode C — '+u.label,
       modeForKeys: 'A',
@@ -720,6 +723,7 @@ function getActiveSeriesMap(data, mode, ctx){
   const want = ctx.isModeC
     ? [
         {srcKey: modeKey('A','0bps'), outKey: 'strategy'},
+        {srcKey: 'ew_baseline', outKey: 'ew'},
         {srcKey: 'spy_total_return', outKey: 'spy'},
         {srcKey: 'spy_60_agg_40', outKey: 'sixty40'},
         {srcKey: 'cash', outKey: 'cash', srcFromGlobal:true},
@@ -728,6 +732,7 @@ function getActiveSeriesMap(data, mode, ctx){
         {srcKey: modeKey(mode,'0bps'), outKey: 'strategy'},
         {srcKey: modeKey(mode,'5bps'), outKey: 'strategy_5bps'},
         {srcKey: modeKey(mode,'10bps'), outKey: 'strategy_10bps'},
+        {srcKey: 'ew_baseline', outKey: 'ew'},
         {srcKey: 'spy_total_return', outKey: 'spy'},
         {srcKey: 'spy_60_agg_40', outKey: 'sixty40'},
         {srcKey: 'cash', outKey: 'cash'},
@@ -775,6 +780,14 @@ function renderEquityCurve(data, mode, ctx){
         hovertemplate:'%{y:.3f}x<extra>'+u.label+'</extra>',
       });
     });
+    const activeU = universes[currentUniverse];
+    if(activeU && activeU.ew_equity){
+      const ew = rebaseSeries(sliceByPeriod(activeU.ew_equity, currentPeriod, anchor));
+      traces.push({type:'scatter',mode:'lines',name:'EW 1/N — '+activeU.label,
+        x:ew.map(p=>p[0]),y:ew.map(p=>p[1]),
+        line:{color:COLORS.ew,width:1.4},opacity:0.85,
+        hovertemplate:'%{y:.3f}x<extra>EW</extra>'});
+    }
     const spyRaw = data.equity_curve.series.spy_total_return;
     if(spyRaw){
       const spy = rebaseSeries(sliceByPeriod(spyRaw, currentPeriod, anchor));
@@ -797,6 +810,7 @@ function renderEquityCurve(data, mode, ctx){
     {key:'strategy',name:'Mode '+mode+' — 0 bps',color:COLORS.strategy,width:2.5},
     {key:'strategy_5bps',name:'Mode '+mode+' — 5 bps',color:COLORS.strategy,width:1.0,dash:'dot',opacity:0.55},
     {key:'strategy_10bps',name:'Mode '+mode+' — 10 bps',color:COLORS.strategy,width:1.0,dash:'dash',opacity:0.45},
+    {key:'ew',name:'EW 1/N (universe)',color:COLORS.ew,width:1.6},
     {key:'spy',name:'SPY total return',color:COLORS.spy,width:1.4},
     {key:'sixty40',name:'60/40 SPY/AGG',color:COLORS.sixty40,width:1.4,dash:'dot'},
   ];
@@ -869,6 +883,7 @@ function renderPerformanceTable(data, mode, ctx){
     {srcKey: modeKey(mode,'0bps'), label:'Mode '+mode+' — 0 bps'},
     {srcKey: modeKey(mode,'5bps'), label:'Mode '+mode+' — 5 bps'},
     {srcKey: modeKey(mode,'10bps'), label:'Mode '+mode+' — 10 bps'},
+    {srcKey: 'ew_baseline', label:'EW 1/N (universe)'},
     {srcKey: 'spy_total_return', label:'SPY total return'},
     {srcKey: 'spy_60_agg_40', label:'60/40 SPY/AGG'},
   ];
@@ -1145,16 +1160,22 @@ function renderRecentPerformance(data, mode, ctx){
     : ctx.series[modeKey(mode,'0bps')];
   const spyRaw = data.equity_curve.series.spy_total_return;
   const sixtyRaw = data.equity_curve.series.spy_60_agg_40;
+  // EW lookup: per-universe in Mode C, baseline otherwise.
+  const ewRaw = ctx.isModeC
+    ? ctx.series.ew_baseline
+    : (ctx.series.ew_baseline || data.equity_curve.series.ew_baseline);
   if(!stratRaw || !spyRaw) return;
 
   const anchor = ctx.end_date;
   const stratWin = sliceByPeriod(stratRaw, currentPeriod, anchor);
   const spyWin = sliceByPeriod(spyRaw, currentPeriod, anchor);
   const sixtyWin = sixtyRaw ? sliceByPeriod(sixtyRaw, currentPeriod, anchor) : null;
+  const ewWin = ewRaw ? sliceByPeriod(ewRaw, currentPeriod, anchor) : null;
 
   const stratYrs = yearlyReturnsFromDaily(stratWin);
   const spyYrs = yearlyReturnsFromDaily(spyWin);
   const sixtyYrs = sixtyWin ? yearlyReturnsFromDaily(sixtyWin) : {};
+  const ewYrs = ewWin ? yearlyReturnsFromDaily(ewWin) : {};
   const allYears = Array.from(new Set([
     ...Object.keys(stratYrs),
     ...Object.keys(spyYrs),
@@ -1170,11 +1191,17 @@ function renderRecentPerformance(data, mode, ctx){
       x:yearsForBars, y:yearsForBars.map(y => (stratYrs[y]||0)*100),
       marker:{color:COLORS.strategy},
       hovertemplate:'%{y:.2f}%<extra>'+stratLabel+' • %{x}</extra>'},
-    {type:'bar', name:'SPY total return',
-      x:yearsForBars, y:yearsForBars.map(y => (spyYrs[y]||0)*100),
-      marker:{color:COLORS.spy},
-      hovertemplate:'%{y:.2f}%<extra>SPY • %{x}</extra>'},
   ];
+  if(ewWin){
+    traces.push({type:'bar', name:'EW 1/N (universe)',
+      x:yearsForBars, y:yearsForBars.map(y => (ewYrs[y]||0)*100),
+      marker:{color:COLORS.ew},
+      hovertemplate:'%{y:.2f}%<extra>EW • %{x}</extra>'});
+  }
+  traces.push({type:'bar', name:'SPY total return',
+    x:yearsForBars, y:yearsForBars.map(y => (spyYrs[y]||0)*100),
+    marker:{color:COLORS.spy},
+    hovertemplate:'%{y:.2f}%<extra>SPY • %{x}</extra>'});
   if(sixtyWin){
     traces.push({type:'bar', name:'60/40 SPY/AGG',
       x:yearsForBars, y:yearsForBars.map(y => (sixtyYrs[y]||0)*100),
@@ -1205,10 +1232,14 @@ function renderRecentPerformance(data, mode, ctx){
   const heatStartStr = heatStart.toISOString().slice(0,10);
   const heatStrat = clipFrom(stratRaw, heatStartStr);
   const heatSpy = clipFrom(spyRaw, heatStartStr);
+  const heatEw = ewRaw ? clipFrom(ewRaw, heatStartStr) : null;
   const stratMonthly = monthlyReturnsFromDaily(heatStrat);
   const spyMonthly = monthlyReturnsFromDaily(heatSpy);
+  const ewMonthly = heatEw ? monthlyReturnsFromDaily(heatEw) : [];
   const spyByYM = {};
   for(const m of spyMonthly){ spyByYM[m.year+'-'+m.month] = m.ret; }
+  const ewByYM = {};
+  for(const m of ewMonthly){ ewByYM[m.year+'-'+m.month] = m.ret; }
 
   const yearBuckets = {};
   for(const m of stratMonthly){
@@ -1243,6 +1274,24 @@ function renderRecentPerformance(data, mode, ctx){
     const yearAggS = Object.keys(months).length ? (yearStrat-1) : null;
     mHtml += '<td style="font-weight:600">'+(yearAggS==null?'—':(yearAggS>=0?'+':'')+(yearAggS*100).toFixed(1)+'%')+'</td>';
     mHtml += '</tr>';
+    let yearEw = 1, yearAggEw = null;
+    if(ewRaw){
+      mHtml += '<tr><td class="row-label">EW 1/N</td>';
+      for(let mi=1; mi<=12; mi++){
+        const v = ewByYM[y+'-'+mi];
+        if(v == null || !isFinite(v)){
+          mHtml += '<td class="empty">—</td>';
+        }else{
+          yearEw *= (1+v);
+          const cls = v>=0?'pos':'neg';
+          mHtml += '<td class="'+cls+'" style="background:'+heatColor(v, HEAT_MAX)+'">'+
+                   (v>=0?'+':'')+(v*100).toFixed(1)+'</td>';
+        }
+      }
+      yearAggEw = (yearEw !== 1) ? (yearEw-1) : null;
+      mHtml += '<td style="font-weight:600">'+(yearAggEw==null?'—':(yearAggEw>=0?'+':'')+(yearAggEw*100).toFixed(1)+'%')+'</td>';
+      mHtml += '</tr>';
+    }
     mHtml += '<tr><td class="row-label">SPY</td>';
     let yearSpy = 1;
     for(let mi=1; mi<=12; mi++){
@@ -1259,10 +1308,13 @@ function renderRecentPerformance(data, mode, ctx){
     const yearAggSpy = (yearSpy !== 1) ? (yearSpy-1) : null;
     mHtml += '<td style="font-weight:600">'+(yearAggSpy==null?'—':(yearAggSpy>=0?'+':'')+(yearAggSpy*100).toFixed(1)+'%')+'</td>';
     mHtml += '</tr>';
-    mHtml += '<tr><td class="row-label">Δ vs SPY</td>';
+    const benchByYM = ewRaw ? ewByYM : spyByYM;
+    const benchLabel = ewRaw ? 'Δ vs EW' : 'Δ vs SPY';
+    const benchYearAgg = ewRaw ? yearAggEw : yearAggSpy;
+    mHtml += '<tr><td class="row-label">'+benchLabel+'</td>';
     for(let mi=1; mi<=12; mi++){
       const sV = months[mi];
-      const yV = spyByYM[y+'-'+mi];
+      const yV = benchByYM[y+'-'+mi];
       if(sV == null || yV == null || !isFinite(sV) || !isFinite(yV)){
         mHtml += '<td class="empty">—</td>';
       }else{
@@ -1272,7 +1324,7 @@ function renderRecentPerformance(data, mode, ctx){
                  (d>=0?'+':'')+(d*100).toFixed(1)+'</td>';
       }
     }
-    const yearDelta = (yearAggS != null && yearAggSpy != null) ? (yearAggS - yearAggSpy) : null;
+    const yearDelta = (yearAggS != null && benchYearAgg != null) ? (yearAggS - benchYearAgg) : null;
     mHtml += '<td style="font-weight:600">'+(yearDelta==null?'—':(yearDelta>=0?'+':'')+(yearDelta*100).toFixed(1)+'%')+'</td>';
     mHtml += '</tr>';
   }

@@ -605,6 +605,33 @@ def run_strategy(prep: dict, mode: str) -> tuple[pd.DataFrame, list, dict]:
     return weights, sig_log, results
 
 
+def run_ew_benchmark(
+    prep: dict,
+    ref_start: pd.Timestamp,
+    tickers: list[str],
+) -> tuple[pd.Series, dict]:
+    """Run a monthly-rebalanced 1/N portfolio across the supplied tickers.
+
+    The most informative benchmark for a momentum strategy: same universe,
+    same rebalance cadence, no signal. If the strategy doesn't beat this,
+    the timing/selection logic isn't earning its keep.
+
+    Returns the equity curve and perf stats.
+    """
+    data = prep["data"]
+    cash_daily_ret = prep["cash_daily_ret"]
+    panel = daily_panel(data, list(tickers)).dropna(how="all")
+    rets = panel.pct_change().fillna(0.0)
+    monthly_idx = panel.resample("ME").last().index
+    n = len(tickers)
+    w = pd.DataFrame(0.0, index=monthly_idx, columns=tickers)
+    for t in tickers:
+        w[t] = 1.0 / n
+    w = w[w.index >= ref_start]
+    eq, _ = simulate(w, panel, rets, slippage_bps=0)
+    return eq, perf_stats(eq, rf_daily=cash_daily_ret)
+
+
 def run_benchmarks(prep: dict, ref_start: pd.Timestamp) -> dict:
     data = prep["data"]
     cash_price = prep["cash_price"]
@@ -624,6 +651,10 @@ def run_benchmarks(prep: dict, ref_start: pd.Timestamp) -> dict:
     bench_w = bench_w[bench_w.index >= ref_start]
     bench_eq, _ = simulate(bench_w, bench_panel, bench_returns, slippage_bps=0)
 
+    # Naive 1/N of the baseline universe, monthly rebalanced — the cleanest
+    # apples-to-apples test of whether the momentum signal earns its keep.
+    ew_eq, ew_stats = run_ew_benchmark(prep, ref_start, RISK_TICKERS)
+
     return {
         "spy_total_return": {
             "equity": spy_eq,
@@ -632,6 +663,10 @@ def run_benchmarks(prep: dict, ref_start: pd.Timestamp) -> dict:
         "spy_60_agg_40": {
             "equity": bench_eq,
             "stats": perf_stats(bench_eq, rf_daily=cash_daily_ret),
+        },
+        "ew_baseline": {
+            "equity": ew_eq,
+            "stats": ew_stats,
         },
     }
 
@@ -848,6 +883,9 @@ def run_mode_c(force_refresh: bool = False) -> dict:
         prep = prepare_data(force_refresh=force_refresh, risk_tickers=tickers)
         weights, sig_log, results = run_strategy(prep, "A")
         eq = results["mode_a_0bps"]["equity"]
+        # Per-universe 1/N benchmark, anchored at the strategy's first exec
+        # so the comparison is apples-to-apples.
+        ew_eq, ew_stats = run_ew_benchmark(prep, eq.index[0], tickers)
         live = compute_live_snapshot(prep["daily_risk"])
         currently_held = _emit_currently_held(
             weights, sig_log, prep["daily_risk"], "A", tickers=tickers
@@ -868,6 +906,10 @@ def run_mode_c(force_refresh: bool = False) -> dict:
             "equity": [
                 [d.strftime("%Y-%m-%d"), round(float(p), 6)] for d, p in eq.items()
             ],
+            "ew_equity": [
+                [d.strftime("%Y-%m-%d"), round(float(p), 6)] for d, p in ew_eq.items()
+            ],
+            "ew_stats": ew_stats,
             "history": history,
             "currently_held": currently_held,
             "live_snapshot": live,
