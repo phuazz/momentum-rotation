@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Momentum Rotation Dashboard</title>
+<meta name="description" content="A study replicating Rayner Teo's four-asset momentum-rotation framework, with universe-sensitivity and graduated-allocation variants. Educational research, not investment advice.">
+<title>Momentum Rotation Dashboard — research replication</title>
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-basic-dist-min@2.35.2/plotly-basic.min.js"></script>
 <style>
 :root{
@@ -84,6 +85,13 @@ p{margin:0}
 .monthly-heat .group-header.first td{padding-top:2px}
 .topbar .meta{display:flex;flex-direction:column;gap:1px;font-size:11px;
   color:var(--text-muted);margin-left:auto;text-align:right;font-feature-settings:'tnum'}
+.topbar .subtitle{font-size:11px;color:var(--text-muted);font-weight:400;
+  font-style:italic;margin-left:2px}
+.disclaimer{background:#fff8e6;border:1px solid #f5d77c;border-left:3px solid #d97706;
+  border-radius:6px;padding:9px 14px;margin-bottom:14px;font-size:12px;
+  color:#78350f;line-height:1.5;display:flex;align-items:flex-start;gap:10px}
+.disclaimer .label{font-weight:600;color:#92400e;flex-shrink:0}
+.disclaimer .body{color:#78350f}
 .modes{display:flex;gap:2px;border:1px solid var(--border);border-radius:6px;padding:2px;background:var(--bg-page)}
 .mode-btn{background:transparent;border:none;color:var(--text-secondary);
   font-size:12px;padding:5px 11px;border-radius:4px;cursor:pointer;font-weight:500;
@@ -172,7 +180,7 @@ p{margin:0}
 <body>
 <div class="page" id="app">
   <header class="topbar">
-    <h1>Momentum Rotation Dashboard</h1>
+    <h1>Momentum Rotation Dashboard <span class="subtitle">— research replication of Rayner Teo's four-asset framework</span></h1>
     <div class="modes" role="tablist" aria-label="Mode selector">
       <button class="mode-btn active" data-mode="A">A — Vanilla</button>
       <button class="mode-btn" data-mode="B">B — Graduated</button>
@@ -183,6 +191,10 @@ p{margin:0}
       <span id="ts-sgt">—</span>
     </div>
   </header>
+  <div class="disclaimer" role="note">
+    <span class="label">Research project.</span>
+    <span class="body">Educational replication of a published strategy. <strong>Not investment advice.</strong> Past performance is not indicative of future results. See the assumptions footer for methodology, sources, and known caveats.</span>
+  </div>
   <div class="mode-descriptor" id="mode-descriptor"></div>
   <div class="subbar" id="bar-c-universe" style="display:none">
     <span class="muted">Universe</span>

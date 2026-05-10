@@ -1,8 +1,10 @@
 # Momentum Rotation Dashboard
 
-Backtest dashboard for a four-asset monthly momentum rotation system, modelled on Rayner Teo's framework.
+A study replicating Rayner Teo's published four-asset monthly momentum-rotation framework, with universe-sensitivity and graduated-allocation variants. Auto-refreshed monthly from Yahoo Finance.
 
-Public URL (planned): https://phuazz.github.io/momentum-rotation/
+**Educational research, not investment advice.** Past performance is not indicative of future results. See the assumptions footer on the dashboard for methodology, sources, and known caveats.
+
+Live: https://phuazz.github.io/momentum-rotation/
 
 ## Status
 
@@ -28,9 +30,8 @@ Returns are total return, computed from Yahoo Finance adjusted close.
 | Mode | Description |
 |---|---|
 | A | Vanilla replication of Teo's spec. Base case. **Live.** |
-| B | Graduated allocation overlay. Equal-weight 1/3 composite of breadth, momentum strength, leader trend strength → 25/50/75/100% risk-asset exposure. **Live.** |
+| B | Graduated allocation overlay. Equal-weight 1/3 composite of breadth, momentum strength, leader trend strength → continuous linear allocation from 25% (composite 0) to 100% (composite ≥ 75). **Live.** |
 | C | Universe sensitivity. Mode A strategy on five four-ETF universes (baseline plus IEF, AGG, PDBC, QQQ single-substitution variants). **Live.** |
-| D | Combined view (planned). Mode B graduated overlay applied to the Mode C universes. |
 
 ## Run locally
 
@@ -63,4 +64,4 @@ Teo cites ~535% cumulative return, ~10% CAGR, ~22% maximum drawdown over 2006 on
 
 ## Last updated
 
-2026-04-29
+2026-05-10
