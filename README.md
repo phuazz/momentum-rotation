@@ -6,7 +6,7 @@ Public URL (planned): https://phuazz.github.io/momentum-rotation/
 
 ## Status
 
-**Milestone 1 — complete.** Mode A replicates Teo's headline figures within tolerance: CAGR 11.73% vs target 10% (+173 bps), maximum drawdown -23.11% vs target -22% (-111 bps), 2008 +14.97% / 2020 +21.30% / 2022 -2.93%. See [REPLICATION_REPORT.md](REPLICATION_REPORT.md) for the detail. No UI yet — Milestone 2 builds the dashboard.
+**Milestones 1–3 plus Mode C — complete.** Mode A replicates Teo's headline figures within tolerance (CAGR 11.73% vs target 10%, max drawdown -23.11% vs -22%). Mode B graduated overlay live: lower CAGR (7.69%) and lower vol (8.75%) with better behaviour through choppy regimes — 2022 -0.65% vs Mode A -2.93% vs SPY -18.18%. Mode C universe sensitivity live: Mode A strategy applied to five four-ETF universes (baseline plus four single-substitution variants), with a comparison table and overlay chart. See [REPLICATION_REPORT.md](REPLICATION_REPORT.md) for the detail. Dashboard: `python scripts/pipeline.py` then `npx serve docs`.
 
 ## Strategy specification
 
@@ -27,10 +27,10 @@ Returns are total return, computed from Yahoo Finance adjusted close.
 
 | Mode | Description |
 |---|---|
-| A | Vanilla replication of Teo's spec. Base case. |
-| B | Graduated allocation overlay (planned). Equal-weight 1/3 composite of breadth, momentum strength, leader trend strength → 25/50/75/100% risk-asset exposure. |
-| C | Universe sensitivity (planned). Alt bond, commodity, equity, gold proxies. |
-| D | Combined view (planned). |
+| A | Vanilla replication of Teo's spec. Base case. **Live.** |
+| B | Graduated allocation overlay. Equal-weight 1/3 composite of breadth, momentum strength, leader trend strength → 25/50/75/100% risk-asset exposure. **Live.** |
+| C | Universe sensitivity. Mode A strategy on five four-ETF universes (baseline plus IEF, AGG, PDBC, QQQ single-substitution variants). **Live.** |
+| D | Combined view (planned). Mode B graduated overlay applied to the Mode C universes. |
 
 ## Run locally
 
@@ -39,14 +39,14 @@ pip install -r requirements.txt
 python scripts/backtest.py
 ```
 
-After Milestone 2:
+Dashboard build and serve:
 
 ```bash
 python scripts/pipeline.py
 npx serve docs
 ```
 
-For source-only dashboard development:
+For source-only dashboard development (template.html with fetch fallback):
 
 ```bash
 npx serve .
@@ -63,4 +63,4 @@ Teo cites ~535% cumulative return, ~10% CAGR, ~22% maximum drawdown over 2006 on
 
 ## Last updated
 
-2026-04-28
+2026-04-29

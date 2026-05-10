@@ -28,6 +28,7 @@ PAYLOAD_FILES = {
     "holdings_timeline": "holdings_timeline.json",
     "performance_stats": "performance_stats.json",
     "current_positioning": "current_positioning.json",
+    "mode_c_universes": "mode_c_universes.json",
 }
 
 
