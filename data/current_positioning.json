@@ -1,6 +1,6 @@
 {
   "schema_version": 3,
-  "as_of_utc": "2026-05-10T13:58:45+00:00",
+  "as_of_utc": "2026-05-10T14:21:03+00:00",
   "modes": {
     "A": {
       "currently_held": {
@@ -26,7 +26,7 @@
           {
             "ticker": "TLT",
             "weight": 0.0,
-            "roc_12m": 0.000392,
+            "roc_12m": 0.000393,
             "above_200dma": false,
             "eligible": false,
             "rank": 0
@@ -111,7 +111,7 @@
           {
             "ticker": "TLT",
             "weight": 0.0,
-            "roc_12m": 0.000392,
+            "roc_12m": 0.000393,
             "above_200dma": false,
             "eligible": false,
             "rank": 0
