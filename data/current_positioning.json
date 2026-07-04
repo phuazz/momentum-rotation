@@ -1,6 +1,6 @@
 {
   "schema_version": 3,
-  "as_of_utc": "2026-07-03T09:31:31+00:00",
+  "as_of_utc": "2026-07-04T08:47:56+00:00",
   "modes": {
     "A": {
       "currently_held": {
@@ -26,7 +26,7 @@
           {
             "ticker": "TLT",
             "weight": 0.0,
-            "roc_12m": 0.023927,
+            "roc_12m": 0.019915,
             "above_200dma": false,
             "eligible": false,
             "rank": 0
@@ -67,9 +67,9 @@
           {
             "ticker": "TLT",
             "price": 85.51,
-            "roc_12m": 0.020858,
-            "sma_200": 86.1077,
-            "distance_pct": -0.006942,
+            "roc_12m": 0.016858,
+            "sma_200": 86.4077,
+            "distance_pct": -0.010389,
             "above_200dma": false,
             "eligible": false,
             "rank": 0
@@ -102,7 +102,7 @@
           },
           {
             "ticker": "SPY",
-            "weight": 0.35532763755137864,
+            "weight": 0.3553276380331151,
             "roc_12m": 0.222051,
             "above_200dma": true,
             "eligible": true,
@@ -111,14 +111,14 @@
           {
             "ticker": "TLT",
             "weight": 0.0,
-            "roc_12m": 0.023927,
+            "roc_12m": 0.019915,
             "above_200dma": false,
             "eligible": false,
             "rank": 0
           },
           {
             "ticker": "DBC",
-            "weight": 0.35532763755137864,
+            "weight": 0.3553276380331151,
             "roc_12m": 0.263515,
             "above_200dma": true,
             "eligible": true,
@@ -126,7 +126,7 @@
           },
           {
             "ticker": "CASH",
-            "weight": 0.2893447248972427,
+            "weight": 0.28934472393376975,
             "roc_12m": null,
             "above_200dma": null,
             "eligible": false,
@@ -166,9 +166,9 @@
           {
             "ticker": "TLT",
             "price": 85.51,
-            "roc_12m": 0.020858,
-            "sma_200": 86.1077,
-            "distance_pct": -0.006942,
+            "roc_12m": 0.016858,
+            "sma_200": 86.4077,
+            "distance_pct": -0.010389,
             "above_200dma": false,
             "eligible": false,
             "rank": 0
