@@ -1,6 +1,6 @@
 {
   "schema_version": 3,
-  "as_of_utc": "2026-08-04T08:50:14+00:00",
+  "as_of_utc": "2026-08-05T08:47:38+00:00",
   "modes": {
     "A": {
       "currently_held": {
@@ -42,47 +42,47 @@
         ]
       },
       "live_snapshot": {
-        "as_of_date": "2026-08-03",
+        "as_of_date": "2026-08-04",
         "rankings": [
           {
             "ticker": "GLD",
-            "price": null,
-            "roc_12m": null,
-            "sma_200": null,
-            "distance_pct": null,
+            "price": 374.16,
+            "roc_12m": 0.203435,
+            "sma_200": 411.7513,
+            "distance_pct": -0.091296,
             "above_200dma": false,
             "eligible": false,
             "rank": 0
           },
           {
             "ticker": "SPY",
-            "price": null,
-            "roc_12m": null,
-            "sma_200": null,
-            "distance_pct": null,
-            "above_200dma": false,
-            "eligible": false,
-            "rank": 0
+            "price": 771.33,
+            "roc_12m": 0.235605,
+            "sma_200": 698.4713,
+            "distance_pct": 0.104312,
+            "above_200dma": true,
+            "eligible": true,
+            "rank": 2
           },
           {
             "ticker": "TLT",
-            "price": null,
-            "roc_12m": null,
-            "sma_200": null,
-            "distance_pct": null,
+            "price": 82.82,
+            "roc_12m": -0.016445,
+            "sma_200": 85.4719,
+            "distance_pct": -0.031027,
             "above_200dma": false,
             "eligible": false,
             "rank": 0
           },
           {
             "ticker": "DBC",
-            "price": null,
-            "roc_12m": null,
-            "sma_200": null,
-            "distance_pct": null,
-            "above_200dma": false,
-            "eligible": false,
-            "rank": 0
+            "price": 28.31,
+            "roc_12m": 0.329523,
+            "sma_200": 26.1643,
+            "distance_pct": 0.082009,
+            "above_200dma": true,
+            "eligible": true,
+            "rank": 1
           }
         ]
       }
@@ -102,7 +102,7 @@
           },
           {
             "ticker": "SPY",
-            "weight": 0.38971478665156656,
+            "weight": 0.38971483526250994,
             "roc_12m": 0.194955,
             "above_200dma": true,
             "eligible": true,
@@ -118,7 +118,7 @@
           },
           {
             "ticker": "DBC",
-            "weight": 0.38971478665156656,
+            "weight": 0.38971483526250994,
             "roc_12m": 0.355954,
             "above_200dma": true,
             "eligible": true,
@@ -126,7 +126,7 @@
           },
           {
             "ticker": "CASH",
-            "weight": 0.22057042669686688,
+            "weight": 0.22057032947498012,
             "roc_12m": null,
             "above_200dma": null,
             "eligible": false,
@@ -141,54 +141,54 @@
         "leader_trend_strength": 39.9652
       },
       "live_snapshot": {
-        "as_of_date": "2026-08-03",
+        "as_of_date": "2026-08-04",
         "rankings": [
           {
             "ticker": "GLD",
-            "price": null,
-            "roc_12m": null,
-            "sma_200": null,
-            "distance_pct": null,
+            "price": 374.16,
+            "roc_12m": 0.203435,
+            "sma_200": 411.7513,
+            "distance_pct": -0.091296,
             "above_200dma": false,
             "eligible": false,
             "rank": 0
           },
           {
             "ticker": "SPY",
-            "price": null,
-            "roc_12m": null,
-            "sma_200": null,
-            "distance_pct": null,
-            "above_200dma": false,
-            "eligible": false,
-            "rank": 0
+            "price": 771.33,
+            "roc_12m": 0.235605,
+            "sma_200": 698.4713,
+            "distance_pct": 0.104312,
+            "above_200dma": true,
+            "eligible": true,
+            "rank": 2
           },
           {
             "ticker": "TLT",
-            "price": null,
-            "roc_12m": null,
-            "sma_200": null,
-            "distance_pct": null,
+            "price": 82.82,
+            "roc_12m": -0.016445,
+            "sma_200": 85.4719,
+            "distance_pct": -0.031027,
             "above_200dma": false,
             "eligible": false,
             "rank": 0
           },
           {
             "ticker": "DBC",
-            "price": null,
-            "roc_12m": null,
-            "sma_200": null,
-            "distance_pct": null,
-            "above_200dma": false,
-            "eligible": false,
-            "rank": 0
+            "price": 28.31,
+            "roc_12m": 0.329523,
+            "sma_200": 26.1643,
+            "distance_pct": 0.082009,
+            "above_200dma": true,
+            "eligible": true,
+            "rank": 1
           }
         ],
-        "breadth": 0.0,
-        "momentum_strength": 0.0,
-        "leader_trend_strength": 0.0,
-        "composite_score": 0.0,
-        "allocation_target": 0.25
+        "breadth": 50.0,
+        "momentum_strength": 70.641,
+        "leader_trend_strength": 37.2642,
+        "composite_score": 52.6351,
+        "allocation_target": 0.7764
       }
     }
   }
