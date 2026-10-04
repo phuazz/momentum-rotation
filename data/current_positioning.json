@@ -1,6 +1,6 @@
 {
   "schema_version": 3,
-  "as_of_utc": "2026-10-03T11:31:22+00:00",
+  "as_of_utc": "2026-10-04T12:12:09+00:00",
   "modes": {
     "A": {
       "currently_held": {
@@ -102,7 +102,7 @@
           },
           {
             "ticker": "SPY",
-            "weight": 0.4140376192318892,
+            "weight": 0.4140376181729279,
             "roc_12m": 0.157131,
             "above_200dma": true,
             "eligible": true,
@@ -118,7 +118,7 @@
           },
           {
             "ticker": "DBC",
-            "weight": 0.4140376192318892,
+            "weight": 0.4140376181729279,
             "roc_12m": 0.482812,
             "above_200dma": true,
             "eligible": true,
@@ -126,7 +126,7 @@
           },
           {
             "ticker": "CASH",
-            "weight": 0.1719247615362216,
+            "weight": 0.17192476365414422,
             "roc_12m": null,
             "above_200dma": null,
             "eligible": false,
